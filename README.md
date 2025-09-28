@@ -1,1 +1,177 @@
-# Juego.
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Juego: Prevención de la misoginia</title>
+<style>
+  body {margin:0; font-family:"Trebuchet MS",sans-serif; background:#f0f4f8;}
+  .infografia, .instrucciones {background:#ffffff; padding:20px; margin:20px auto; max-width:800px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1);}
+  .infografia h2 {color:#2b6cb0;}
+  .instrucciones {background:#e6f7ff; border-left:5px solid #3182ce;}
+  .instrucciones h3 {margin-top:0;}
+  .final-message a {display:block; margin:8px 0; color:#2b6cb0; text-decoration:underline;}
+
+  .game-box {background:#fff; border-radius:16px; padding:20px; margin:20px auto; width:95%; max-width:800px; box-shadow:0 10px 25px rgba(0,0,0,.2); text-align:center;}
+  h1 {color:#2b6cb0; font-size:1.6rem; margin:0;}
+  .status {display:flex; justify-content:space-between; margin:12px 0; font-weight:bold;}
+  .lives {color:#e53e3e;}
+  .question {font-weight:bold; font-size:1.2rem; margin:16px 0;}
+  .options {list-style:none; padding:0;}
+  .options li {margin:8px 0;}
+  button.option {width:100%; padding:12px; border-radius:10px; border:none; background:#edf2f7; font-weight:600; cursor:pointer; transition:.2s;}
+  button.option:hover {transform:scale(1.03);}
+  .correct {background:#48bb78!important; color:#fff;}
+  .wrong {background:#f56565!important; color:#fff;}
+  .next {margin-top:16px; padding:10px 16px; background:#2b6cb0; color:#fff; border:none; border-radius:8px; cursor:pointer;}
+  .score-box {margin-top:20px; font-size:1.1rem; font-weight:bold;}
+  .final-message {font-size:1.2rem; margin-top:16px;}
+  .feedback {margin-top:12px; font-style:italic; color:#2d3748;}
+  .drag-item {padding:8px; margin:4px; background:#e2e8f0; border-radius:6px; cursor:grab;}
+  .drop-zone {border:2px dashed #cbd5e0; padding:12px; border-radius:6px; min-height:40px; margin:6px 0;}
+  textarea {width:100%; padding:10px; border-radius:6px; border:1px solid #cbd5e0;}
+  #startScreen {text-align:center; padding:40px;}
+  #diploma {border:4px solid #2b6cb0; padding:20px; border-radius:10px; margin-top:20px; background:#edf2f7;}
+</style>
+</head>
+<body>
+
+<div class="infografia">
+  <h2>¿Qué es la misoginia?</h2>
+  <p>La misoginia es el desprecio, odio o prejuicio hacia las mujeres. Se manifiesta en conductas, estereotipos, exclusión, violencia o discriminación sistemática.</p>
+  <ul>
+    <li>Puede aparecer en el lenguaje, bromas, roles impuestos o negación de oportunidades.</li>
+    <li>También afecta a hombres al imponerles normas rígidas de comportamiento.</li>
+    <li>Combatirla es responsabilidad de toda la sociedad.</li>
+  </ul>
+</div>
+
+<div class="instrucciones">
+  <h3>Instrucciones del Juego</h3>
+  <p>Responde correctamente a las preguntas sobre misoginia para ganar puntos. Tienes 3 vidas. Si pierdes, te sugeriremos recursos para seguir aprendiendo.</p>
+  <ul>
+    <li>Algunas preguntas son de opción múltiple.</li>
+    <li>Otras requieren que arrastres causas a sus efectos.</li>
+    <li>También hay preguntas abiertas para reflexionar.</li>
+  </ul>
+</div>
+
+<!-- Pantalla inicial -->
+<div id="startScreen" class="game-box">
+  <h1>Juego: Prevención de la misoginia</h1>
+  <p>Escribe tu nombre para comenzar:</p>
+  <input type="text" id="playerName" placeholder="Tu nombre..." />
+  <br><br>
+  <button class="next" onclick="startGame()">Comenzar ▶️</button>
+</div>
+
+<!-- Juego -->
+<div id="gameScreen" class="game-box" style="display:none;">
+  <h1>Juego: Prevención de la misoginia</h1>
+  <div class="status">
+    <div>Nivel: <span id="level">1</span></div>
+    <div>❤️ <span id="lives">3</span></div>
+    <div>Puntos: <span id="points">0</span></div>
+  </div>
+  <div class="question" id="question">Cargando...</div>
+  <ul class="options" id="options"></ul>
+  <div id="dragdrop" style="display:none;"></div>
+  <div id="openended" style="display:none;">
+    <textarea id="openAnswer" rows="3" placeholder="Escribe tu respuesta..."></textarea><br>
+    <button class="option" onclick="submitOpen()">Enviar</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+  <button class="next" id="nextBtn" style="display:none;">Siguiente ➡️</button>
+  <div class="score-box" id="scoreBox"></div>
+  <div class="final-message" id="finalMessage"></div>
+</div>
+
+<!-- sonidos -->
+<audio id="soundCorrect" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="soundWrong" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg"></audio>
+<audio id="soundLevelUp" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+<audio id="soundWin" src="https://actions.google.com/sounds/v1/cartoon/slide_whistle_to_drum_hit.ogg"></audio>
+
+<script>
+let playerName="";
+const levels=[ /* (igual que antes, preguntas) */ 
+  { name:"Fácil", questions:[
+    {type:"mcq", text:"¿Qué es la misoginia?", options:[
+      {text:"Amor hacia las mujeres", correct:false},
+      {text:"Prejuicio u odio hacia las mujeres", correct:true},
+      {text:"Indiferencia hacia las mujeres", correct:false},
+      {text:"Admiración por las mujeres", correct:false}
+    ], feedback:"La misoginia es una actitud que denigra o discrimina a las mujeres."},
+    {type:"truefalse", text:"La misoginia solo afecta a las mujeres. (V/F)", correct:false, feedback:"También daña a los hombres y a toda la sociedad al fomentar desigualdad."},
+    {type:"dragdrop", text:"Arrastra el ejemplo al concepto correcto:", pairs:[
+      {cause:"Un jefe ignora ideas de una ingeniera", effect:"Estereotipo laboral"},
+      {cause:"Reírse de una alumna en clase por ser mujer", effect:"Misoginia escolar"}
+    ], feedback:"Estos ejemplos reflejan cómo la misoginia se manifiesta en distintos espacios."}
+  ]},
+  { name:"Medio", questions:[
+    {type:"mcq", text:"¿Cuál de las siguientes es una causa importante de la misoginia?", options:[
+      {text:"Educación en igualdad de género", correct:false},
+      {text:"Estereotipos y roles de género tradicionales", correct:true},
+      {text:"Leyes contra la violencia de género", correct:false},
+      {text:"Empoderamiento femenino", correct:false}
+    ], feedback:"Los roles tradicionales perpetúan prejuicios e injusticias."},
+    {type:"truefalse", text:"La educación en igualdad desde una edad temprana ayuda a prevenir la misoginia. (V/F)", correct:true, feedback:"Sí, educar en respeto y equidad desde la infancia previene discriminación."},
+    {type:"dragdrop", text:"Une causa con su consecuencia:", pairs:[
+      {cause:"Publicidad muestra solo a mujeres cocinando", effect:"Se piensa que su lugar es la cocina"},
+      {cause:"Creencia de que los hombres no deben llorar", effect:"Se reprimen emociones masculinas"}
+    ], feedback:"Los estereotipos en medios y cultura afectan expectativas sociales."},
+    {type:"open", text:"Reflexiona: ¿Qué podrías hacer si escuchas un chiste que ridiculiza a las mujeres?", feedback:"Respuestas posibles: señalar que es dañino, apoyar a la persona afectada o pedir respeto."}
+  ]},
+  { name:"Difícil", questions:[
+    {type:"mcq", text:"Caso real: Una comunidad ignora denuncias de acoso para 'proteger la reputación'. Esto es un ejemplo de:", options:[
+      {text:"Prevención efectiva", correct:false},
+      {text:"Cultura del silencio", correct:true},
+      {text:"Igualdad de género", correct:false},
+      {text:"Empoderamiento comunitario", correct:false}
+    ], feedback:"La cultura del silencio protege a agresores y perpetúa la misoginia."},
+    {type:"mcq", text:"¿Cuál es una consecuencia social grave de la misoginia?", options:[
+      {text:"Fortalecimiento del respeto mutuo", correct:false},
+      {text:"Aumento de violencia de género y desigualdad social", correct:true},
+      {text:"Mayor participación de mujeres en política", correct:false},
+      {text:"Educación equitativa para todos", correct:false}
+    ], feedback:"La misoginia refuerza violencia y desigualdad, dañando a toda la sociedad."},
+    {type:"open", text:"¿Por qué es importante que hombres y mujeres participen en campañas contra la misoginia?", feedback:"Porque la misoginia afecta a toda la sociedad y solo un esfuerzo colectivo puede transformarla."}
+  ]}
+];
+
+let levelIndex=0,qIndex=0,score=0,lives=3;
+const qEl=document.getElementById("question"),optEl=document.getElementById("options"),dragEl=document.getElementById("dragdrop"),openEl=document.getElementById("openended"),feedbackEl=document.getElementById("feedback"),nextBtn=document.getElementById("nextBtn"),scoreBox=document.getElementById("scoreBox"),finalMessage=document.getElementById("finalMessage"),livesEl=document.getElementById("lives"),pointsEl=document.getElementById("points");
+const sCorrect=document.getElementById("soundCorrect"),sWrong=document.getElementById("soundWrong"),sLevel=document.getElementById("soundLevelUp"),sWin=document.getElementById("soundWin");
+
+function startGame(){
+  playerName=document.getElementById("playerName").value.trim()||"Jugador/a";
+  document.getElementById("startScreen").style.display="none";
+  document.getElementById("gameScreen").style.display="block";
+  showQuestion();
+}
+
+function showQuestion(){
+  feedbackEl.textContent=""; nextBtn.style.display="none"; optEl.innerHTML=""; dragEl.style.display="none"; openEl.style.display="none";
+  const q=levels[levelIndex].questions[qIndex]; qEl.textContent=q.text;
+  if(q.type==="mcq"){q.options.forEach(opt=>{const li=document.createElement("li"); const btn=document.createElement("button"); btn.className="option"; btn.textContent=opt.text; btn.onclick=()=>selectAnswer(opt.correct,q.feedback,btn); li.appendChild(btn); optEl.appendChild(li);});}
+  if(q.type==="truefalse"){["Verdadero","Falso"].forEach((t,i)=>{const li=document.createElement("li"); const btn=document.createElement("button"); btn.className="option"; btn.textContent=t; const expected=(q.correct&&i===0)||(!q.correct&&i===1); btn.onclick=()=>selectAnswer(expected,q.feedback,btn); li.appendChild(btn); optEl.appendChild(li);});}
+  if(q.type==="dragdrop"){dragEl.style.display="block"; dragEl.innerHTML=""; q.pairs.forEach((p,i)=>{const c=document.createElement("div"); c.className="drag-item"; c.textContent=p.cause; c.draggable=true; c.dataset.match=i; dragEl.appendChild(c);}); q.pairs.forEach((p,i)=>{const z=document.createElement("div"); z.className="drop-zone"; z.textContent=p.effect; z.dataset.match=i; dragEl.appendChild(z);}); enableDragDrop(q);}
+  if(q.type==="open"){openEl.style.display="block";}
+}
+
+function selectAnswer(correct,fb,btn){if(correct){btn.classList.add("correct");score++;pointsEl.textContent=score;sCorrect.play();}else{btn.classList.add("wrong");lives--;livesEl.textContent=lives;sWrong.play();}feedbackEl.textContent=fb;nextBtn.style.display="inline-block";if(lives<=0){ endGame("😢 Sin vidas. ¡Inténtalo otra vez!",false);} }
+
+function enableDragDrop(q){let correct=0,attempts=0; const draggables=dragEl.querySelectorAll(".drag-item"); const zones=dragEl.querySelectorAll(".drop-zone"); draggables.forEach(d=>{d.addEventListener("dragstart",ev=>{ev.dataTransfer.setData("match",d.dataset.match);});}); zones.forEach(z=>{z.addEventListener("dragover",ev=>ev.preventDefault()); z.addEventListener("drop",ev=>{ev.preventDefault(); const match=ev.dataTransfer.getData("match"); if(match===z.dataset.match){correct++;z.style.background="#48bb78";}else{lives--;livesEl.textContent=lives;z.style.background="#f56565";}attempts++; if(attempts===q.pairs.length){if(correct===q.pairs.length){score++;pointsEl.textContent=score;sCorrect.play();}feedbackEl.textContent=q.feedback;nextBtn.style.display="inline-block";if(lives<=0){ endGame("😢 Sin vidas. ¡Inténtalo otra vez!",false);} } }); });}
+
+function submitOpen(){const q=levels[levelIndex].questions[qIndex];const ans=document.getElementById("openAnswer").value.trim();if(ans.length>0){score++;pointsEl.textContent=score;sCorrect.play();}feedbackEl.textContent=q.feedback;nextBtn.style.display="inline-block";}
+
+nextBtn.onclick=()=>{qIndex++; if(qIndex<levels[levelIndex].questions.length){showQuestion();} else {levelIndex++; if(levelIndex<levels.length){qIndex=0; document.getElementById("level").textContent=levelIndex+1; sLevel.play(); showQuestion();} else {endGame("🏆 ¡Completaste todos los niveles con "+score+" puntos!",true);} } }
+
+function endGame(msg,win){qEl.textContent="Juego terminado"; optEl.innerHTML=""; dragEl.innerHTML=""; openEl.style.display="none"; nextBtn.style.display="none"; scoreBox.textContent=`Puntos: ${score}`;
+  if(win){finalMessage.innerHTML=`<div id="diploma"><h2>🎓 Diploma</h2><p>Se otorga a <strong>${playerName}</strong></p><p>Por haber completado el juego y demostrar ser un/a <strong>Experto/a en la prevención de la misoginia</strong>.</p></div>`;}
+  else {finalMessage.innerHTML=msg+"<br><br>📚 Investiga más en estos enlaces:"; finalMessage.innerHTML+='<a href="https://www.unwomen.org/es" target="_blank">ONU Mujeres</a>'; finalMessage.innerHTML+='<a href="https://educandoenigualdad.com/" target="_blank">Educando en Igualdad</a>'; finalMessage.innerHTML+='<a href="https://violenciagenero.igualdad.gob.es/" target="_blank">Ministerio de Igualdad (España)</a>';}
+  sWin.play();
+}
+</script>
+</body>
+</html>
